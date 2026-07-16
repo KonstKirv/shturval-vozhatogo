@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Активности" />
+  <meta name="theme-color" content="#1A1340" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <style>
+:root {
+  --bg: #1a1340;
+  --card: #352a70;
+  --elev: #2c225f;
+  --text: #f5f3ff;
+  --muted: #b8b0d9;
+  --teal: #2dd4bf;
+  --orange: #ff8a3d;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100%;
+}
+body { padding-top: var(--safe-top); padding-bottom: calc(72px + var(--safe-bottom)); }
+h1,h2,h3 { margin: 0 0 8px; }
+button, input, select, textarea {
+  font: inherit; color: inherit;
+}
+.app-header {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(26,19,64,.92); backdrop-filter: blur(12px);
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid #3a3068;
+}
+.app-header h1 { font-size: 1.35rem; }
+.app-header .sub { color: var(--muted); font-size: .85rem; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.search {
+  flex: 1; min-width: 140px;
+  background: var(--elev); border: none; border-radius: 14px;
+  padding: 14px 16px; font-size: 16px; /* iOS zoom fix */
+}
+.chip-scroll {
+  display: flex; gap: 8px; overflow-x: auto; padding: 8px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+.chip {
+  flex: 0 0 auto;
+  background: var(--elev); border: none; border-radius: 16px;
+  padding: 10px 14px; color: var(--text); font-size: .85rem;
+  white-space: nowrap; cursor: pointer;
+}
+.chip.on { background: var(--teal); color: #1a1340; font-weight: 600; }
+.chip.orange.on { background: var(--orange); color: #1a1340; }
+.list { padding: 8px 16px 24px; display: flex; flex-direction: column; gap: 12px; }
+.card {
+  background: var(--card); border-radius: 18px; padding: 14px 16px;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.2);
+}
+.card .badge {
+  display: inline-block; background: rgba(45,212,191,.2); color: var(--teal);
+  border-radius: 8px; padding: 4px 10px; font-size: .75rem; margin-bottom: 8px;
+}
+.card h3 { font-size: 1.05rem; }
+.card .meta { color: var(--muted); font-size: .85rem; margin-top: 6px; }
+.card .goals { color: var(--teal); font-size: .8rem; margin-top: 6px; }
+.nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: flex; justify-content: space-around;
+  background: #241b54; border-top: 1px solid #3a3068;
+  padding: 8px 4px calc(8px + var(--safe-bottom));
+}
+.nav button {
+  flex: 1; background: none; border: none; color: var(--muted);
+  padding: 8px 4px; font-size: .7rem; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.nav button.on { color: var(--teal); }
+.nav .ico { font-size: 1.25rem; }
+.screen { display: none; min-height: 60vh; }
+.screen.on { display: block; }
+.detail { padding: 16px; }
+.detail .big-btn {
+  width: 100%; background: var(--teal); color: #1a1340; border: none;
+  border-radius: 16px; padding: 16px; font-weight: 700; font-size: 1.05rem;
+  margin: 12px 0; cursor: pointer;
+}
+.detail .sec { margin: 16px 0 6px; color: var(--teal); font-weight: 600; }
+.detail p, .detail pre {
+  white-space: pre-wrap; line-height: 1.45; color: var(--text); margin: 0 0 8px;
+  font-family: inherit;
+}
+.back {
+  background: none; border: none; color: var(--teal); font-size: 1rem;
+  padding: 8px 0; cursor: pointer;
+}
+.counselor {
+  position: fixed; inset: 0; z-index: 50; background: #0d0a1f;
+  padding: calc(12px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  overflow: auto; display: none;
+}
+.counselor.on { display: flex; flex-direction: column; }
+.counselor .timer {
+  font-size: 2.5rem; font-weight: 800; color: var(--teal); text-align: center;
+}
+.counselor .step-text {
+  flex: 1; background: #352a70; border-radius: 16px; padding: 20px;
+  font-size: 1.25rem; line-height: 1.45; margin: 12px 0;
+}
+.counselor .reflect {
+  background: #3d2a12; color: #ffe0b2; border-radius: 16px; padding: 16px;
+  font-size: 1.15rem; line-height: 1.4;
+}
+.btn-row { display: flex; gap: 8px; }
+.btn-row button {
+  flex: 1; border: none; border-radius: 14px; padding: 14px; font-weight: 700; cursor: pointer;
+}
+.btn-teal { background: var(--teal); color: #1a1340; }
+.btn-orange { background: var(--orange); color: #1a1340; }
+.btn-ghost { background: #352a70; color: var(--text); }
+.form { padding: 16px; }
+.form label { display: block; margin: 12px 0 6px; color: var(--muted); font-size: .9rem; }
+.form input[type=range] { width: 100%; }
+.form .val { color: var(--teal); font-weight: 600; }
+.tip {
+  background: var(--elev); border-radius: 12px; padding: 12px; margin: 12px 16px;
+  color: var(--muted); font-size: .9rem; line-height: 1.4;
+}
+.day-block {
+  margin: 12px 16px; background: var(--card); border-radius: 16px; padding: 14px;
+}
+.day-block h3 { color: var(--teal); }
+.slot {
+  background: var(--elev); border-radius: 12px; padding: 10px 12px; margin-top: 8px;
+  cursor: pointer;
+}
+.slot .role { color: var(--orange); font-size: .8rem; }
+.empty { text-align: center; color: var(--muted); padding: 48px 24px; }
+.install-banner {
+  margin: 8px 16px; background: #2c225f; border: 1px solid var(--teal);
+  border-radius: 14px; padding: 12px; font-size: .9rem; line-height: 1.4;
+}
+.fav { float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+.hidden { display: none !important; }
+
+</style>
+  <title>Активности</title>
+</head>
+<body>
+  <div id="installBanner" class="install-banner hidden">
+    <strong>Установка на iPhone без App Store</strong><br/>
+    Safari → кнопка «Поделиться» → <b>«На экран „Домой“»</b>. Приложение откроется как отдельное и работает offline.
+  </div>
+
+  <!-- HOME -->
+  <section id="screen-home" class="screen on">
+    <header class="app-header">
+      <h1>Активности</h1>
+      <div class="sub">iPhone · offline · 100 игр</div>
+      <div class="row" style="margin-top:10px">
+        <input id="search" class="search" type="search" placeholder="Найти за 10 секунд…" enterkeyhint="search" />
+      </div>
+    </header>
+    <div class="chip-scroll" id="presetChips"></div>
+    <div class="chip-scroll" id="catChips"></div>
+    <div class="list" id="homeList"></div>
+  </section>
+
+  <!-- DETAIL -->
+  <section id="screen-detail" class="screen">
+    <div class="detail">
+      <button class="back" id="detailBack">← Назад</button>
+      <div id="detailBody"></div>
+    </div>
+  </section>
+
+  <!-- PLAN -->
+  <section id="screen-plan" class="screen">
+    <header class="app-header">
+      <h1>Подборка на смену</h1>
+      <div class="sub">Авто-сетка с логикой дней и мест</div>
+    </header>
+    <div class="form">
+      <label>Название</label>
+      <input id="planTitle" class="search" value="Смена · сплочение" />
+      <label>Дней: <span class="val" id="daysVal">10</span></label>
+      <input id="planDays" type="range" min="3" max="21" value="10" />
+      <label>Игр в день: <span class="val" id="perDayVal">3</span></label>
+      <input id="planPerDay" type="range" min="2" max="5" value="3" />
+      <label>Типы (можно несколько)</label>
+      <div class="chip-scroll" id="planCats" style="padding-left:0"></div>
+      <button class="detail big-btn" id="genPlan">Сгенерировать</button>
+    </div>
+    <div id="planResult"></div>
+  </section>
+
+  <!-- FAV -->
+  <section id="screen-fav" class="screen">
+    <header class="app-header"><h1>Избранное</h1></header>
+    <div class="list" id="favList"></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="screen-hist" class="screen">
+    <header class="app-header"><h1>История</h1></header>
+    <div class="list" id="histList"></div>
+  </section>
+
+  <!-- COUNSELOR OVERLAY -->
+  <div id="counselor" class="counselor">
+    <div class="row" style="justify-content:space-between">
+      <button class="btn-ghost" id="cExit" style="padding:10px 14px;border-radius:12px">✕</button>
+      <div class="timer" id="cTimer">00:00</div>
+      <button class="btn-teal" id="cTimerBtn" style="padding:10px 14px;border-radius:12px">▶</button>
+    </div>
+    <div id="cPhase" style="color:var(--teal);font-size:.85rem;margin-top:8px"></div>
+    <h2 id="cTitle" style="margin-top:8px"></h2>
+    <div id="cBody" class="step-text"></div>
+    <div class="btn-row">
+      <button class="btn-ghost" id="cPrev">Назад</button>
+      <button class="btn-teal" id="cNext">Далее</button>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="on" data-tab="home"><span class="ico">🏠</span>Каталог</button>
+    <button data-tab="plan"><span class="ico">📅</span>Смена</button>
+    <button data-tab="fav"><span class="ico">★</span>Избранное</button>
+    <button data-tab="hist"><span class="ico">🕑</span>История</button>
+  </nav>
+
+  <script>
+/* Активности — iOS PWA (offline, без App Store) */
+(function () {
+  'use strict';
+
+  const CAT_LABEL = {
+    PHYSICAL: '🏃 Физические',
+    VERBAL: '💬 Вербальные',
+    CREATIVE: '🎨 Творческие',
+    CHALLENGE: '🧩 Челленджи'
+  };
+  const GOAL_RU = {
+    BONDING: 'Сплочение', EMPATHY: 'Эмпатия', LISTENING: 'Слушание',
+    ENERGY_RELEASE: 'Сброс энергии', CALM_DOWN: 'Заземление', INCLUSION: 'Включить тихого',
+    LEADERSHIP: 'Лидерство', AFTER_CONFLICT: 'После напряжения', ICEBREAK: 'Знакомство', FOCUS: 'Фокус'
+  };
+  const PRESETS = [
+    { id: 'canteen', title: '🍽️ Столовая', filter: (a) => a.durationMin <= 12 && a.propsLevel !== 'COMPLEX' },
+    { id: 'rain', title: '🌧️ Дождь', filter: (a) => a.places.some((p) => p === 'HALL' || p === 'SMALL_ROOM') && a.energy !== 'HIGH' },
+    { id: 'outdoor', title: '☀️ Улица', filter: (a) => a.places.includes('OUTDOOR') },
+    { id: 'bus', title: '🚌 Автобус', filter: (a) => a.places.includes('BUS') },
+    { id: 'evening', title: '🌙 Вечер', filter: (a) => a.energy === 'CALM' && (a.category === 'VERBAL' || a.category === 'CREATIVE') },
+    { id: 'day1', title: '👋 День 1', filter: (a) => (a.goals || []).includes('ICEBREAK') || a.durationMin <= 14 }
+  ];
+
+  let ALL = [];
+  let state = {
+    tab: 'home',
+    query: '',
+    cat: null,
+    preset: null,
+    detail: null,
+    fav: loadSet('fav'),
+    hist: loadJson('hist', []),
+    plans: loadJson('plans', [])
+  };
+
+  function loadSet(k) {
+    try { return new Set(JSON.parse(localStorage.getItem(k) || '[]')); } catch { return new Set(); }
+  }
+  function saveSet(k, s) { localStorage.setItem(k, JSON.stringify([...s])); }
+  function loadJson(k, d) {
+    try { return JSON.parse(localStorage.getItem(k) || JSON.stringify(d)); } catch { return d; }
+  }
+  function saveJson(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+  async function init() {
+    ALL = [{"number": 1, "title": "Гелиевая палочка", "category": "PHYSICAL", "durationMin": 12, "propsText": "Палка / обруч 1–1,5 м", "rules": "1) Встаньте в два ряда, пальцы вперёд.\n2) Палочка на указательные пальцы.\n3) Опустите её на пол, не теряя контакта.\n4) 2–3 попытки со стратегической паузой.", "psychology": "Синхронизация и общая ответственность; «переусердие» мешает результату.", "reflection": "Что помогло договориться с палочкой — слова, пауза или чужой темп?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["FOCUS", "BONDING", "LISTENING"], "isQuickRescue": true, "id": 1}, {"number": 2, "title": "Слепой маршрут назад", "category": "PHYSICAL", "durationMin": 18, "propsText": "Ориентиры, повязки (опц.)", "rules": "1) Пара: пилот спиной вперёд с закрытыми глазами + навигатор голосом.\n2) Маршрут 8–12 м.\n3) Не задеть ориентиры.\n4) Смена ролей.", "psychology": "Точная спокойная инструкция и безопасное доверие.", "reflection": "Какие слова навигатора реально помогали?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "BONDING", "FOCUS"], "isQuickRescue": false, "id": 2}, {"number": 3, "title": "Человеческий узел 2.0", "category": "PHYSICAL", "durationMin": 15, "propsText": "Не нужен", "rules": "1) Круг 8–12 человек, руки к центру — две чужие руки.\n2) Распутаться, не разжимая.\n3) Опция: 1–2 с закрытыми глазами.", "psychology": "Терпение, переговоры в тесном контакте, решение хаоса.", "reflection": "Кто стал «голосом спокойствия» в узле?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "ZERO", "goals": ["BONDING", "FOCUS", "LEADERSHIP"], "isQuickRescue": true, "id": 3}, {"number": 4, "title": "Ветры ивы", "category": "PHYSICAL", "durationMin": 14, "propsText": "Мягкий пол желателен", "rules": "1) Плотный круг 8–10 человек.\n2) Доброволец в центре мягко отклоняется.\n3) Круг ловит и возвращает.\n4) Малая амплитуда, отказ — норма.", "psychology": "Телесный опыт «меня держат», снижение страха уязвимости.", "reflection": "Что сложнее — отдаться кругу или ловить?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "EMPATHY"], "isQuickRescue": false, "id": 4}, {"number": 5, "title": "Молчаливая молния", "category": "PHYSICAL", "durationMin": 10, "propsText": "Не нужен", "rules": "1) Две линии, руки — коридор.\n2) «Молния готова?» — «Готова!»\n3) Доброволец проходит, руки опускаются перед ним.\n4) Скорость выбирает сам.", "psychology": "Взаимная внимательность и ощущение безопасного коридора.", "reflection": "От чего зависела готовность ускориться?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "ZERO", "goals": ["BONDING", "FOCUS"], "isQuickRescue": true, "id": 5}, {"number": 6, "title": "Поезд доверия", "category": "PHYSICAL", "durationMin": 14, "propsText": "4–6 станций-меток", "rules": "1) Колонна, руки на плечи.\n2) Машинист видит маршрут, остальные — нет.\n3) Сигналы: стоп/лево/право.\n4) Смена машиниста.", "psychology": "Распределённое лидерство и ответственность за «незрячих».", "reflection": "Чем отличалось быть машинистом и «вагоном»?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "LISTENING", "BONDING"], "isQuickRescue": false, "id": 6}, {"number": 7, "title": "Передача груза по кругу", "category": "PHYSICAL", "durationMin": 12, "propsText": "Мяч / шарик", "rules": "1) Круг.\n2) Передача без рук (локти/колени).\n3) 1–2 круга без падения.\n4) Два груза — усложнение.", "psychology": "Координация «мы» и юмор без высмеивания ошибок.", "reflection": "Какая договорённость сработала лучше всех?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "FOCUS", "INCLUSION"], "isQuickRescue": true, "id": 7}, {"number": 8, "title": "Зеркальный дуэт", "category": "PHYSICAL", "durationMin": 10, "propsText": "Не нужен", "rules": "1) Пары лицом к лицу.\n2) А ведёт 1 мин — Б зеркало.\n3) Смена.\n4) 1–2 мин без назначения ведущего.", "psychology": "Эмпатия через тело, «чтение» партнёра.", "reflection": "Когда вы начали двигаться вместе, а не «за»?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "ZERO", "goals": ["EMPATHY", "FOCUS", "ICEBREAK"], "isQuickRescue": true, "id": 8}, {"number": 9, "title": "Ковёр-самолёт", "category": "PHYSICAL", "durationMin": 18, "propsText": "Плед / баннер", "rules": "1) Группа 6–10 на ковре.\n2) Перевернуть ковёр, не ступая на пол.\n3) 2 мин планирования.\n4) Касание пола — мягкий рестарт.", "psychology": "Планирование, роли, физическая взаимоподдержка.", "reflection": "Какая идея изменила ход задачи?", "energy": "HIGH", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "BONDING", "FOCUS"], "isQuickRescue": false, "id": 9}, {"number": 10, "title": "Минное поле голосом", "category": "PHYSICAL", "durationMin": 18, "propsText": "«Мины», повязка", "rules": "1) Поле с минами.\n2) Идущий с закрытыми глазами + проводник голосом.\n3) Пересечь без касаний.\n4) Смена ролей.", "psychology": "Точность речи и ответственность за безопасность другого.", "reflection": "Какая инструкция сработала лучше?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "FOCUS", "BONDING"], "isQuickRescue": false, "id": 10}, {"number": 11, "title": "Синхронный шагомер", "category": "PHYSICAL", "durationMin": 10, "propsText": "Линия старта-финиша", "rules": "1) Линия плечом к плечу, руки сцеплены.\n2) Пройти 8–10 м в одном ритме.\n3) Сбились — выровняться.\n4) Варианты: счёт / метроном / тишина.", "psychology": "Чувство группы как единого организма.", "reflection": "Что сбивало ритм — спешка впереди или страх отстать?", "energy": "HIGH", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["FOCUS", "BONDING", "ENERGY_RELEASE"], "isQuickRescue": true, "id": 11}, {"number": 12, "title": "Живой мост", "category": "PHYSICAL", "durationMin": 12, "propsText": "Метки «берегов»", "rules": "1) Пара держится за предплечья, противовес.\n2) Пройти 1,5–2 м.\n3) Ведущий страхует.\n4) Смена партнёров.", "psychology": "Опыт «держу — и меня держат» без риска.", "reflection": "Как вы поняли, что партнёру можно доверять вес?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "EMPATHY"], "isQuickRescue": false, "id": 12}, {"number": 13, "title": "Обруч по кругу", "category": "PHYSICAL", "durationMin": 10, "propsText": "Обруч / петля", "rules": "1) Круг, руки соединены, обруч на одной паре.\n2) Пропустить обруч по кругу, не разжимая рук.\n3) 2-я попытка — улучшить время.", "psychology": "Координация + юмор + общая цель.", "reflection": "Какой приём передачи сэкономил время?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "FOCUS", "INCLUSION"], "isQuickRescue": true, "id": 13}, {"number": 14, "title": "Тихая эстафета баланса", "category": "PHYSICAL", "durationMin": 12, "propsText": "Книга / плоский предмет", "rules": "1) Команды 4–5.\n2) Предмет на голове, тишина.\n3) Передача аккуратно.\n4) Успех = все прошли, не гонка.", "psychology": "Фокус с гонки на качество поддержки.", "reflection": "Что важнее — скорость или спокойствие?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["FOCUS", "CALM_DOWN", "BONDING"], "isQuickRescue": false, "id": 14}, {"number": 15, "title": "Водитель и бампер", "category": "PHYSICAL", "durationMin": 12, "propsText": "Повязки", "rules": "1) «Машина» с закрытыми глазами, руки-бампер.\n2) Водитель сзади на плечах — без слов.\n3) Светофор ведущего.\n4) Смена.", "psychology": "Невербальное доверие и телесный код.", "reflection": "Какой сигнал был самым понятным без слов?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "BONDING", "FOCUS"], "isQuickRescue": false, "id": 15}, {"number": 16, "title": "Коридор ладоней", "category": "PHYSICAL", "durationMin": 10, "propsText": "Не нужен", "rules": "1) Две линии — тоннель ладоней.\n2) Доброволец с закрытыми глазами идёт.\n3) Лёгкие касания направляют.\n4) Тихие аплодисменты в конце.", "psychology": "Мягкий тактильный контакт в безопасных границах.", "reflection": "Как вы поняли, что касание — помощь, а не давление?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "ZERO", "goals": ["BONDING", "EMPATHY", "INCLUSION"], "isQuickRescue": true, "id": 16}, {"number": 17, "title": "Гусеница-навигатор", "category": "PHYSICAL", "durationMin": 14, "propsText": "Повязка, метки", "rules": "1) Колонна, руки на плечи.\n2) Голова видит, тело — нет.\n3) Собрать «цветы».\n4) Говорит только «радио».", "psychology": "Каналы связи, роли, общее тело команды.", "reflection": "Где гусеница «ломалась»?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "LISTENING", "BONDING"], "isQuickRescue": false, "id": 17}, {"number": 18, "title": "Парный баланс «чаша»", "category": "PHYSICAL", "durationMin": 8, "propsText": "Не нужен", "rules": "1) Ладонь к ладони.\n2) Синхронные приседания.\n3) Смена партнёра.\n4) Усложнение: глаза закрыты.", "psychology": "Тонкая координация и взаимная чувствительность.", "reflection": "Что вы подстроили — силу, темп или дыхание?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "ZERO", "goals": ["FOCUS", "EMPATHY", "ICEBREAK"], "isQuickRescue": true, "id": 18}, {"number": 19, "title": "Невидимая верёвка", "category": "PHYSICAL", "durationMin": 10, "propsText": "Верёвка только на демо", "rules": "1) Показать круг с верёвкой.\n2) Убрать — держать «невидимую».\n3) Сузить/расширить форму.\n4) 1–2 с закрытыми глазами.", "psychology": "Образ связи группы без предмета.", "reflection": "Когда «верёвка» казалась реальной?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "FOCUS", "INCLUSION"], "isQuickRescue": true, "id": 19}, {"number": 20, "title": "Сканер пространства", "category": "PHYSICAL", "durationMin": 12, "propsText": "8–10 предметов разной фактуры", "rules": "1) Сканер с закрытыми глазами + гид.\n2) Описывать ощущения.\n3) Найти 3 предмета по описанию.\n4) Смена.", "psychology": "Внимание к среде + доверие к описанию.", "reflection": "Что было надёжнее — ощущения или голос?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "FOCUS", "ICEBREAK"], "isQuickRescue": false, "id": 20}, {"number": 21, "title": "Тандемные шаги", "category": "PHYSICAL", "durationMin": 10, "propsText": "Не нужен (лента — опц., осторожно)", "rules": "1) Пара: держаться за локоть/пояс.\n2) Пройти змейкой 10 м.\n3) Смена ведущего шага по хлопку.\n4) Медленно, ровный пол.", "psychology": "Синхронизация намерений, отказ «тянуть на себя».", "reflection": "Как договаривались о первом шаге без слов?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "ZERO", "goals": ["BONDING", "FOCUS", "EMPATHY"], "isQuickRescue": true, "id": 21}, {"number": 22, "title": "Перекат мяча командой", "category": "PHYSICAL", "durationMin": 10, "propsText": "1 мяч", "rules": "1) Круг стоя.\n2) Перекат ногами, руки за спиной.\n3) 20 передач без вылета.\n4) Два мяча — усложнение.", "psychology": "Общая моторика и радость «мы смогли».", "reflection": "Кто «спасал» мяч чаще?", "energy": "HIGH", "places": ["OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "ENERGY_RELEASE", "FOCUS"], "isQuickRescue": true, "id": 22}, {"number": 23, "title": "Круг опоры", "category": "PHYSICAL", "durationMin": 8, "propsText": "Не нужен", "rules": "1) Круг: лёгкий наклон назад на ладони соседей.\n2) 10–15 сек.\n3) Дышать вместе.\n4) Выход по счёту. (Без group-sit, если нет страховки.)", "psychology": "Взаимозависимость: «держу — и меня держат».", "reflection": "Что нужно, чтобы опора была спокойной?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "ZERO", "goals": ["BONDING", "EMPATHY", "CALM_DOWN"], "isQuickRescue": true, "id": 23}, {"number": 24, "title": "Слепой «лифт»", "category": "PHYSICAL", "durationMin": 12, "propsText": "Метки этажей", "rules": "1) Пассажир с закрытыми глазами.\n2) 3–4 лифтёра ведут голосом + лёгкое касание.\n3) На этаже: «Комфортно?»\n4) Не поднимать человека.", "psychology": "Согласие, границы, бережное сопровождение.", "reflection": "Какой вопрос повысил чувство безопасности?", "energy": "MEDIUM", "places": ["OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "BONDING", "LISTENING"], "isQuickRescue": false, "id": 24}, {"number": 25, "title": "Ритм-цепочка телами", "category": "PHYSICAL", "durationMin": 12, "propsText": "Не нужен", "rules": "1) Круг: первый задаёт ритм.\n2) Каждый добавляет элемент.\n3) Общий ритм 30 сек.\n4) Обмен ритмами между кругами.", "psychology": "Коллективное творчество + общий бит.", "reflection": "Как удерживали ритм, когда кто-то сбивался?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "ZERO", "goals": ["BONDING", "INCLUSION", "ENERGY_RELEASE"], "isQuickRescue": true, "id": 25}, {"number": 26, "title": "Общий знаменатель", "category": "VERBAL", "durationMin": 14, "propsText": "Не нужен", "rules": "1) Группы 4–5.\n2) 5 общих вещей (не внешность).\n3) 1 редкая общая деталь.\n4) Презентация 40 сек.", "psychology": "От поверхностного знакомства к «мы не случайны».", "reflection": "Какая общая деталь сблизила сильнее?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "ZERO", "goals": ["ICEBREAK", "BONDING", "INCLUSION"], "isQuickRescue": true, "id": 26}, {"number": 27, "title": "Двухминутный эксперт", "category": "VERBAL", "durationMin": 18, "propsText": "Бумага, маркеры", "rules": "1) Каждый пишет тему-экспертизу.\n2) 90 сек мини-урок.\n3) Открытые вопросы 60 сек.\n4) Комплимент ясности.", "psychology": "Статус «тихому» участнику; уважительное слушание.", "reflection": "Что помогло слушать внимательнее?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["ICEBREAK", "LISTENING", "INCLUSION"], "isQuickRescue": false, "id": 27}, {"number": 28, "title": "Карта интересов на скорость", "category": "VERBAL", "durationMin": 14, "propsText": "Карточки тем (опц.)", "rules": "1) Ведущий называет тему.\n2) Острова предпочтений за 20 сек.\n3) 40 сек «почему».\n4) 5–7 раундов.", "psychology": "Визуализирует разнообразие, ломает «свои компании».", "reflection": "С кем из другого острова стало интересно?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["ICEBREAK", "BONDING", "INCLUSION"], "isQuickRescue": true, "id": 28}, {"number": 29, "title": "Да, и…", "category": "VERBAL", "durationMin": 12, "propsText": "Не нужен", "rules": "1) Правило: «Да, и…» — принимать + добавлять.\n2) Пары, тема от ведущего.\n3) 2 мин.\n4) Смена партнёра.", "psychology": "Принятие чужой идеи вместо спора «кто правее».", "reflection": "Что сложнее — принимать или продолжать?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "ZERO", "goals": ["LISTENING", "BONDING", "FOCUS"], "isQuickRescue": true, "id": 29}, {"number": 30, "title": "Суд мнений", "category": "VERBAL", "durationMin": 18, "propsText": "3 зоны на полу", "rules": "1) Тезис → зоны согласен/нет/сомнение.\n2) 30 сек аргумент.\n3) Можно перейти.\n4) Критика идеи, не человека.", "psychology": "Аргументация и право менять позицию.", "reflection": "Сдвинул ли чужой аргумент вашу точку зрения?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "LEADERSHIP", "EMPATHY"], "isQuickRescue": false, "id": 30}, {"number": 31, "title": "Активный слушатель 360°", "category": "VERBAL", "durationMin": 14, "propsText": "Не нужен", "rules": "1) Тройки: спикер / слушатель / наблюдатель.\n2) 60 сек рассказ.\n3) Пересказ 30 сек.\n4) Роли по кругу.", "psychology": "Слушание как навык, безопасная ОС.", "reflection": "Что в пересказе доказало: вас услышали?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "ZERO", "goals": ["LISTENING", "EMPATHY", "FOCUS"], "isQuickRescue": false, "id": 31}, {"number": 32, "title": "Интервью «3 слоя»", "category": "VERBAL", "durationMin": 16, "propsText": "Карточки слоёв (опц.)", "rules": "1) Пары.\n2) Факт → выбор → смысл.\n3) Представить партнёра одним предложением.\n4) Пас на 3-м слое — ок.", "psychology": "Глубокое знакомство без вторжения.", "reflection": "На каком слое разговор стал живым?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["ICEBREAK", "EMPATHY", "LISTENING"], "isQuickRescue": false, "id": 32}, {"number": 33, "title": "Эмпатийный переводчик", "category": "VERBAL", "durationMin": 14, "propsText": "Карточки ситуаций", "rules": "1) Герой / друг / переводчик чувств.\n2) Ситуация → обычный ответ → «ты чувствуешь…».\n3) Оценка попадания.\n4) Смена ролей.", "psychology": "Называть эмоции и потребности.", "reflection": "Чем перевод чувств лучше «не парься»?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "AFTER_CONFLICT", "LISTENING"], "isQuickRescue": false, "id": 33}, {"number": 34, "title": "Быстрые дуэли аргументов", "category": "VERBAL", "durationMin": 14, "propsText": "Таймер", "rules": "1) Две команды, лёгкая тема.\n2) 20+20+15+15 сек.\n3) Компромисс за 1 мин.\n4) Без оскорблений.", "psychology": "Азарт спора → навык договариваться.", "reflection": "Какой компромисс умнее «победы»?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "LEADERSHIP", "FOCUS"], "isQuickRescue": true, "id": 34}, {"number": 35, "title": "Секретный контракт группы", "category": "VERBAL", "durationMin": 18, "propsText": "Большой лист, маркеры", "rules": "1) Что должно быть правдой, чтобы всем ок?\n2) Штурм → точки → топ-5.\n3) Формулировки «Мы…».\n4) Подписи.", "psychology": "Авторство норм, меньше хаоса.", "reflection": "Какое правило лично нужнее?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["BONDING", "AFTER_CONFLICT", "LEADERSHIP"], "isQuickRescue": false, "id": 35}, {"number": 36, "title": "История из одного слова", "category": "VERBAL", "durationMin": 10, "propsText": "Не нужен", "rules": "1) Жанр от ведущего.\n2) По кругу — одно слово.\n3) Раунд 2: три слова со связью.\n4) Резюме 20 сек.", "psychology": "Следовать общему потоку, не тянуть одеяло.", "reflection": "Что сложнее — ждать или встроить слово?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "ZERO", "goals": ["ICEBREAK", "INCLUSION", "LISTENING"], "isQuickRescue": true, "id": 36}, {"number": 37, "title": "Слепой свидетель", "category": "VERBAL", "durationMin": 14, "propsText": "Бумага", "rules": "1) Короткая сценка.\n2) Свидетели пишут, что видели.\n3) Сравнить расхождения.\n4) Повтор сценки.", "psychology": "Субъективность восприятия, уточняющие вопросы.", "reflection": "Почему одну сцену видят по-разному?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "FOCUS", "EMPATHY"], "isQuickRescue": false, "id": 37}, {"number": 38, "title": "Комплимент-конструктор", "category": "VERBAL", "durationMin": 10, "propsText": "Не нужен", "rules": "1) Формула: нравится как… потому что…\n2) Случайные пары.\n3) «Спасибо, ценно про…».\n4) 2–3 смены.", "psychology": "Замечать вклад и принимать похвалу.", "reflection": "Чем конкретный комплимент лучше «ты крутой»?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "ZERO", "goals": ["EMPATHY", "ICEBREAK", "INCLUSION"], "isQuickRescue": true, "id": 38}, {"number": 39, "title": "Молчаливое да/нет", "category": "VERBAL", "durationMin": 10, "propsText": "Не нужен", "rules": "1) Секретный да/нет.\n2) Вопросы жестами 90 сек.\n3) Угадать ответ и тему.\n4) Смена.", "psychology": "Невербалика и точность вопросов.", "reflection": "Какой жест был самым понятным?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "ZERO", "goals": ["LISTENING", "FOCUS", "ICEBREAK"], "isQuickRescue": true, "id": 39}, {"number": 40, "title": "Радар общих ценностей", "category": "VERBAL", "durationMin": 15, "propsText": "Карточки ценностей", "rules": "1) Выбрать 3 ценности.\n2) Найти совпадения 4 мин.\n3) Кластеры → правило отряда.\n4) Презентация.", "psychology": "Осознанные основания дружбы и норм.", "reflection": "Какая ценность близка, даже если выбрали другую?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["BONDING", "EMPATHY", "AFTER_CONFLICT"], "isQuickRescue": false, "id": 40}, {"number": 41, "title": "Перефразируй и усили", "category": "VERBAL", "durationMin": 12, "propsText": "Список фраз", "rules": "1) Колючая фраза.\n2) Перевод в уважительную просьбу.\n3) Тройки, 3 фразы.\n4) Собрать на доску.", "psychology": "Экологичная обратная связь.", "reflection": "Какое слово превращает нападение в просьбу?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["AFTER_CONFLICT", "EMPATHY", "LISTENING"], "isQuickRescue": true, "id": 41}, {"number": 42, "title": "Голос без лица", "category": "VERBAL", "durationMin": 10, "propsText": "Не нужен", "rules": "1) Водящий спиной.\n2) Фраза изменённым тоном.\n3) Угадать кто + эмоция.\n4) Без пародий на акцент.", "psychology": "Слуховое внимание к эмоции в голосе.", "reflection": "Что выдаёт эмоцию — громкость, темп, паузы?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "ZERO", "goals": ["EMPATHY", "LISTENING", "ICEBREAK"], "isQuickRescue": true, "id": 42}, {"number": 43, "title": "Круг «я замечаю»", "category": "VERBAL", "durationMin": 12, "propsText": "«Микрофон»-предмет (опц.)", "rules": "1) «Я замечаю, что в группе…» / «мне легче, когда…».\n2) Только слушание.\n3) Пас — норма.\n4) Общее в конце.", "psychology": "Скрытые ощущения группы без «кто виноват».", "reflection": "Какое «я замечаю» стало полезным?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "AFTER_CONFLICT", "BONDING"], "isQuickRescue": false, "id": 43}, {"number": 44, "title": "Переговорный аукцион", "category": "VERBAL", "durationMin": 16, "propsText": "Карточки ресурсов, фишки", "rules": "1) Команды 4–5, ресурсы на торги.\n2) Аргумент пользы + цена.\n3) Межкомандный обмен.\n4) У каждой — минимум 1 ресурс.", "psychology": "Переговоры, приоритеты, win-win.", "reflection": "Когда выгоднее уступить?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "LISTENING", "BONDING"], "isQuickRescue": false, "id": 44}, {"number": 45, "title": "Сценарий «что если…»", "category": "VERBAL", "durationMin": 14, "propsText": "Карточки дилемм", "rules": "1) Мини-группы.\n2) Дилемма → 3 варианта → лучший.\n3) Презентация 40 сек.\n4) Без морализаторства.", "psychology": "Моральное рассуждение и групповые решения.", "reflection": "Какой критерий: справедливость, дружба, правила?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["AFTER_CONFLICT", "EMPATHY", "LEADERSHIP"], "isQuickRescue": false, "id": 45}, {"number": 46, "title": "Код доверия", "category": "VERBAL", "durationMin": 14, "propsText": "Бумага, маркеры", "rules": "1) Поведение, повышающее/роняющее доверие.\n2) Плакат «Код».\n3) Позитивные формулировки.\n4) Сигнал нарушения.", "psychology": "Доверие — наблюдаемое и договорное.", "reflection": "Какой пункт труднее соблюдать?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["BONDING", "AFTER_CONFLICT", "EMPATHY"], "isQuickRescue": false, "id": 46}, {"number": 47, "title": "Микрофокус: один вопрос", "category": "VERBAL", "durationMin": 12, "propsText": "Карточки вопросов", "rules": "1) Один сильный вопрос.\n2) 3 встречи по 2 мин.\n3) Без ухода в свой монолог.\n4) В кругу — с разрешения.", "psychology": "Сила одного точного вопроса для близости.", "reflection": "Почему один вопрос сильнее десяти «как дела»?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["ICEBREAK", "EMPATHY", "LISTENING"], "isQuickRescue": true, "id": 47}, {"number": 48, "title": "Карточки «я могу помочь»", "category": "VERBAL", "durationMin": 14, "propsText": "Стикеры", "rules": "1) «Могу помочь с…» + «Нужна помощь с…».\n2) Ярмарка совпадений.\n3) Микропомощь на смене.\n4) Никого не оставить в стороне.", "psychology": "Сеть поддержки, нормализация просьбы.", "reflection": "Что сложнее — предложить или попросить?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["INCLUSION", "BONDING", "EMPATHY"], "isQuickRescue": false, "id": 48}, {"number": 49, "title": "Антиспор: найди согласие", "category": "VERBAL", "durationMin": 14, "propsText": "Карточки полюсов", "rules": "1) Пары на противоположных тезисах.\n2) 2 мин усилить позицию.\n3) 5 пунктов согласия.\n4) «Мы оба ценим…».", "psychology": "Спор ≠ победа; общий фундамент.", "reflection": "Что общего не было видно в начале?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "MINIMAL", "goals": ["AFTER_CONFLICT", "LISTENING", "BONDING"], "isQuickRescue": false, "id": 49}, {"number": 50, "title": "Мост историй", "category": "VERBAL", "durationMin": 18, "propsText": "Не нужен", "rules": "1) 90 сек история «мне помогли» / «гордился».\n2) Найти мост между историями.\n3) Презентация формулы.\n4) 3–4 пары в кругу.", "psychology": "Эмоциональная связь через смысл.", "reflection": "Какой мост был самым неожиданным?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM", "BUS"], "propsLevel": "ZERO", "goals": ["EMPATHY", "BONDING", "LISTENING"], "isQuickRescue": false, "id": 50}, {"number": 51, "title": "Командный мурал «наш отряд»", "durationMin": 20, "category": "CREATIVE", "propsText": "Большой лист / обои, маркеры, скотч", "rules": "1) Постелите лист на пол или стену так, чтобы все подошли.\n2) 2 мин — договориться о 3 словах-ценностях отряда (без спора: каждое слово от мини-группы).\n3) 12–15 мин все одновременно рисуют символы, сцены смены, «места силы» — зоны не делят жёстко, а дополняют.\n4) 3 мин подписать ценности и 1 «закон гостеприимства» на краю.\n5) Короткий тур галереи: каждый называет 1 деталь, которой гордится.", "psychology": "Общий визуальный «мы» снимает зажатость: вклад виден без обязательного монолога.", "reflection": "Какая деталь мурала лучше всего говорит: «это про нас»?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "INCLUSION", "LEADERSHIP"], "isQuickRescue": false, "id": 51}, {"number": 52, "title": "Рисунок-близнец", "durationMin": 15, "category": "CREATIVE", "propsText": "Бумага, ручки на пару", "rules": "1) Пары садятся спиной к спине (или с барьером из тетрадей).\n2) А 60 сек молча рисует простой объект (дом, монстр, карта острова).\n3) А 2 мин описывает словами — Б рисует, не видя оригинал. Запрет: «нарисуй как обычно» — только формы, размеры, отношения.\n4) Сравнить листы.\n5) Смена ролей с новым объектом.", "psychology": "Учит точной речи и терпеливому слушанию; юмор ошибок сближает.", "reflection": "Какое слово-описание сработало лучше жеста «ну вот так»?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "FOCUS", "ICEBREAK"], "isQuickRescue": false, "id": 52}, {"number": 53, "title": "Карта острова группы", "durationMin": 18, "category": "CREATIVE", "propsText": "А2/А1, маркеры, стикеры", "rules": "1) Группа рисует один остров: берега, бухты, горы, тропы.\n2) Легенда: бухта = зона комфорта, гора = вызов, маяк = человек/правило поддержки, топь = что нас тормозит.\n3) Каждый ставит стикер «я сейчас здесь».\n4) 2 мин: предложить 1 «мост» между сложной и комфортной зоной.\n5) Презентация легенды 60–90 сек одному рассказчику (ротация желающих).", "psychology": "Метафора состояния группы без прямого «разбора полётов».", "reflection": "Какой «мост» вы реально построите на этой смене?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "EMPATHY", "INCLUSION"], "isQuickRescue": false, "id": 53}, {"number": 54, "title": "Ментальная карта мечты", "durationMin": 16, "category": "CREATIVE", "propsText": "Лист, маркеры", "rules": "1) В центре круга — «Мечта отряда на смену» (1 фраза).\n2) Ветки: КАК (действия), КТО (роли), ЧТО МЕШАЕТ, РЕСУРСЫ.\n3) 8 мин заполняют все; споры — через «да, и…».\n4) Выбрать 3 конкретных шага на ближайшие 48 часов.\n5) Подписать ответственных добровольно.", "psychology": "Переводит «хотелки» в план и распределённую ответственность.", "reflection": "Какой шаг самый маленький, но сдвинет всё?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "BONDING", "FOCUS"], "isQuickRescue": false, "id": 54}, {"number": 55, "title": "Послание в кармане", "durationMin": 10, "category": "CREATIVE", "propsText": "Стикеры / бумажки, ручки", "rules": "1) Каждый пишет короткое тёплое послание «незнакомцу отряда» (без имени): поддержка, шутка добрая, наблюдение-сила.\n2) Складывают, перемешивают.\n3) Тянут случайное; читают молча 30 сек.\n4) По желанию 2–3 человека делятся вслух одним предложением «что зацепило».\n5) Запрет: сарказм, намёки на внешность, токсичные «советы».", "psychology": "Анонимная забота снижает страх оценки и даёт чувство «меня видят».", "reflection": "Чем анонимное «спасибо» отличается от комплимента в лицо?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "INCLUSION", "CALM_DOWN"], "isQuickRescue": true, "id": 55}, {"number": 56, "title": "Эмодзи-комикс дня", "durationMin": 12, "category": "CREATIVE", "propsText": "Бумага, маркеры (или только слова-эмодзи)", "rules": "1) Команды 3–4 человека.\n2) За 6 мин — комикс из 6 кадров ТОЛЬКО иконками/эмодзи/простыми пиктограммами про «наш идеальный день».\n3) Соседняя команда «читает» историю вслух.\n4) Авторы подтверждают/уточняют за 20 сек.\n5) Выбрать 1 кадр в «символ смены».", "psychology": "Общий язык без длинных текстов; включает тихих через рисунок.", "reflection": "Где «переводчики» угадали сюжет точнее всего?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["ICEBREAK", "INCLUSION", "BONDING"], "isQuickRescue": true, "id": 56}, {"number": 57, "title": "Коллективный персонаж", "durationMin": 15, "category": "CREATIVE", "propsText": "Лист А3, маркеры", "rules": "1) По кругу каждый добавляет 1 черту героя отряда (сила, слабость, суперсильный жест, любимая еда в столовой).\n2) Вместе выбирают имя и девиз из 3–5 слов.\n3) 5 мин рисуют персонажа по частям (голова / торс / фон — разные люди).\n4) «Паспорт героя» на краю листа.\n5) Повесить в комнате как талисман.", "psychology": "Игровая идентичность группы без давления «будь лидером».", "reflection": "Какая черта героя — уже правда про вас, а какая — цель?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "INCLUSION", "ICEBREAK"], "isQuickRescue": false, "id": 57}, {"number": 58, "title": "Рисуем спиной", "durationMin": 10, "category": "CREATIVE", "propsText": "Не нужен (бумага опц. для проверки)", "rules": "1) Пары. Согласие на лёгкий контакт обязательно; отказ — норма, тогда рисуют на ладони партнёра.\n2) А пальцем «рисует» на спине Б простую фигуру (солнце, дом, стрелка, сердце).\n3) Б угадывает и может нарисовать на бумаге.\n4) 3 фигуры, затем смена.\n5) Без щекотки и «страшных» рисунков.", "psychology": "Мягкий тактильный контакт + внимание к сигналам тела.", "reflection": "Как вы поняли, что касание — помощь, а не давление?", "energy": "MEDIUM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "ZERO", "goals": ["EMPATHY", "BONDING", "ICEBREAK"], "isQuickRescue": true, "id": 58}, {"number": 59, "title": "Коллаж сильных сторон", "durationMin": 16, "category": "CREATIVE", "propsText": "Стикеры, большой лист, маркеры", "rules": "1) Каждый пишет на 2–3 стикерах сильные стороны ДРУГИХ (конкретные действия, не «ты клёвый»).\n2) 4 мин — подойти и наклеить человеку/на общий коллаж рядом с именем.\n3) 2 мин тишины: прочитать, что про тебя написали.\n4) По желанию один человек делится: «это про меня, потому что…».\n5) Запрет: внешность без запроса, сравнения «лучше чем».", "psychology": "Нормализует видеть вклад других и принимать признание.", "reflection": "Какой стикер вас удивил — и почему вы сами это не замечали?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "INCLUSION", "BONDING"], "isQuickRescue": false, "id": 59}, {"number": 60, "title": "Тихая галерея благодарностей", "durationMin": 12, "category": "CREATIVE", "propsText": "Стикеры/карточки, скотч", "rules": "1) 4 мин молча пишут 1–2 благодарности: «спасибо, что…» (человеку, группе, месту).\n2) Развешивают «галерею» на стене.\n3) 2 мин прогулка без разговоров — только чтение.\n4) Сесть в круг: 3 добровольных «что отозвалось» без указания автора, если не просили.\n5) Сохранить галерею на день.", "psychology": "Благодарность как практика, а не формальность; тишина снижает шум статусов.", "reflection": "Чем тихая благодарность отличается от громких аплодисментов?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "CALM_DOWN", "BONDING"], "isQuickRescue": false, "id": 60}, {"number": 61, "title": "Карта «где я себя чувствую»", "durationMin": 14, "category": "CREATIVE", "propsText": "План комнаты/лагеря (нарисовать), стикеры 3 цветов", "rules": "1) Нарисовать упрощённую карту корпуса/площадки.\n2) Цвета: спокойно / весело / напряжённо (или свои).\n3) Каждый клеит 2–3 точки «где я так себя чувствую».\n4) Смотрят паттерны: где кластеры напряжения?\n5) 1 идея: как сделать «напряжённую» зону чуть безопаснее (правило, ритуал, мебель).", "psychology": "Делает среду предметом заботы, а не только «поведение детей».", "reflection": "Какую одну точку на карте вы хотите изменить вместе?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "AFTER_CONFLICT", "INCLUSION"], "isQuickRescue": false, "id": 61}, {"number": 62, "title": "Общий комикс из 6 кадров", "durationMin": 15, "category": "CREATIVE", "propsText": "6 листов или 1 лист на 6 клеток, маркеры", "rules": "1) Стартовый кадр задаёт ведущий: «Утро, отряд находит странный конверт…».\n2) Лист идёт по кругу: каждый 60–90 сек рисует следующий кадр, не обсуждая сюжет вслух.\n3) После 6 кадров — хором «озвучить» комикс.\n4) Найти «момент команды» в сюжете.\n5) Подписать авторов кадров инициалами.", "psychology": "Общее повествование учит принимать чужой поворот истории.", "reflection": "Где сюжет «сломался» — и как вы это приняли?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "INCLUSION", "LISTENING"], "isQuickRescue": false, "id": 62}, {"number": 63, "title": "Символ команды за 10 минут", "durationMin": 12, "category": "CREATIVE", "propsText": "Бумага, маркеры", "rules": "1) 3 мин индивидуально: набросать 1 символ «мы».\n2) 4 мин в тройках: слить идеи в один эскиз.\n3) 2 мин — точки голосования (3 точки на человека).\n4) 1 мин — доработать победителя всеми вместе (детали, цвет).\n5) Символ можно использовать в сценариях и мурале.", "psychology": "Быстрый консенсус и уважение к идеям меньшинства (детали в финале).", "reflection": "Что от «проигравших» эскизов всё равно вошло в финал?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "LEADERSHIP", "INCLUSION"], "isQuickRescue": true, "id": 63}, {"number": 64, "title": "Открытки будущему себе", "durationMin": 12, "category": "CREATIVE", "propsText": "Бумага, конверты/скотч, ручки", "rules": "1) Написать открытку себе через 7 дней: «Я горжусь…», «Я пробую…», «Мне помогает…».\n2) Запечатать, подписать имя.\n3) Вожатый хранит «почту».\n4) В конце смены/недели — раздать.\n5) По желанию 1 фразу можно прочитать в кругу.", "psychology": "Самоподдержка и якорь прогресса; письмо мягче публичного отчёта.", "reflection": "Какую фразу будущему себе вы написали самой честной?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["CALM_DOWN", "EMPATHY", "FOCUS"], "isQuickRescue": true, "id": 64}, {"number": 65, "title": "Слепой эскиз по инструкции", "durationMin": 15, "category": "CREATIVE", "propsText": "Образец-картинка, бумага, маркеры, барьер", "rules": "1) Рисовальщик не видит образец (за спиной/повязка на образец).\n2) Остальные 3–4 человека по очереди дают по 1 инструкции (форма, размер, место).\n3) 5–7 мин; нельзя показывать руками «вот так».\n4) Сравнить с оригиналом.\n5) Обсудить: какие инструкции были точными.", "psychology": "Командная точность речи; роли «спикер/тишина» тренируют очередь.", "reflection": "Какая инструкция сэкономила больше всего исправлений?", "energy": "MEDIUM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "FOCUS", "LEADERSHIP"], "isQuickRescue": false, "id": 65}, {"number": 66, "title": "Стенгазета «наши правила»", "durationMin": 18, "category": "CREATIVE", "propsText": "Ватман, маркеры, стикеры", "rules": "1) Мозговой штурм правил «чтобы всем было ок» — 3 мин, без критики.\n2) Переформулировать в позитив: «Мы…», не «Нельзя…».\n3) Топ-5 точками.\n4) Оформить как стенгазету: заголовок, иконки, подписи.\n5) «Подписать» инициалами. Повесить в комнате.", "psychology": "Авторство норм группы; визуальный контракт всегда на виду.", "reflection": "Какое правило труднее соблюдать — и чем оно вам помогает?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "LEADERSHIP", "AFTER_CONFLICT"], "isQuickRescue": false, "id": 66}, {"number": 67, "title": "Дерево целей отряда", "durationMin": 16, "category": "CREATIVE", "propsText": "Большой лист, маркеры, стикеры", "rules": "1) Ствол — «Наша смена».\n2) Корни — что уже умеем (навыки, шутки, ритуалы).\n3) Крона — цели на смену (личные + общие, на стикерах).\n4) Плоды — измеримые «как поймём, что вышло».\n5) 2 «полива» — действия на завтра.", "psychology": "Связывает прошлый успех с будущими целями, снижает тревогу «надо всё».", "reflection": "Какой «корень» вы недооценивали?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "BONDING", "FOCUS"], "isQuickRescue": false, "id": 67}, {"number": 68, "title": "Нарисуй, как я тебя услышал", "durationMin": 14, "category": "CREATIVE", "propsText": "Бумага, маркеры", "rules": "1) Пары. А 60–90 сек рассказывает историю (не травму): «момент гордости» / «смешной провал».\n2) Б молча рисует метафору услышанного (не портрет).\n3) Б показывает: «я услышал, что…».\n4) А: «попал / почти / мимо» + 1 уточнение.\n5) Смена ролей.", "psychology": "Эмпатия через образ; проверка, что услышали смысл, а не факты.", "reflection": "Что в рисунке доказало: вас поняли?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "LISTENING", "AFTER_CONFLICT"], "isQuickRescue": false, "id": 68}, {"number": 69, "title": "Карта сокровищ дружбы", "durationMin": 15, "category": "CREATIVE", "propsText": "Лист, маркеры, цветные карандаши", "rules": "1) Нарисовать карту «кладов»: поддержка, юмор, честность, помощь в деле, тихий рядом.\n2) Тропы между кладами — как это проявляется у нас.\n3) Каждый ставит «Х» — какой клад ищет сейчас.\n4) 1 человек может предложить «ключ» (микродействие) к чужому Х.\n5) Легенда значков в углу.", "psychology": "Делает дружбу навыком и маршрутом, а не магией «сам собой».", "reflection": "Какой «ключ» к чужому кладу вы готовы дать на этой неделе?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "EMPATHY", "INCLUSION"], "isQuickRescue": false, "id": 69}, {"number": 70, "title": "Письмо «спасибо, что…»", "durationMin": 12, "category": "CREATIVE", "propsText": "Бумага, ручки, «почтовый ящик» (коробка)", "rules": "1) Написать письмо конкретному человеку в отряде: «Спасибо, что…» + факт + эффект на вас.\n2) Положить в ящик или передать лично (выбор автора).\n3) 5 мин на написание, 2 мин на вручение/отправку.\n4) Читать вслух — только с разрешения адресата.\n5) Вожатый тоже может получить письмо (по желанию детей).", "psychology": "Конкретная благодарность укрепляет связи и культуру признания.", "reflection": "Почему «спасибо, что…» сильнее просто «спасибо»?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "CALM_DOWN", "BONDING"], "isQuickRescue": true, "id": 70}, {"number": 71, "title": "Общий логотип челленджа", "durationMin": 16, "category": "CREATIVE", "propsText": "Бумага, маркеры, бриф на доске", "rules": "1) Ведущий даёт бриф: название челленджа смены + 3 слова (например: смелость, юмор, вместе).\n2) 5 мин эскизы в парах.\n3) 4 мин — слияние в 2 финалиста.\n4) Голосование + доработка деталей всеми.\n5) «Гайд»: где логотип можно использовать (плакат, кричалка, печать на футболке-мечте).", "psychology": "Совместное брендирование цели; чувство соавторства миссии.", "reflection": "Какой элемент логотипа нельзя было выкинуть?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "LEADERSHIP", "INCLUSION"], "isQuickRescue": false, "id": 71}, {"number": 72, "title": "История в иконках", "durationMin": 10, "category": "CREATIVE", "propsText": "Бумага, маркеры", "rules": "1) Только пиктограммы: 8 иконок = одна история «как мы справились».\n2) 5 мин в мини-группах.\n3) Другие «читают» историю, не слыша авторов.\n4) Авторы раскрывают задумку за 20 сек.\n5) Собрать 3 лучшие иконки в «алфавит отряда».", "psychology": "Сжатие смысла; включает визуалов и снижает барьер длинной речи.", "reflection": "Какая иконка стала понятна всем без слов?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["ICEBREAK", "INCLUSION", "FOCUS"], "isQuickRescue": true, "id": 72}, {"number": 73, "title": "Портрет группы без лиц", "durationMin": 14, "category": "CREATIVE", "propsText": "Большой лист, маркеры", "rules": "1) Рисуют портрет группы ПРЕДМЕТАМИ и символами (наушники, мяч, книга, огонь костра) — без лиц и имён, если не хотят.\n2) 10 мин все добавляют детали.\n3) Угадать: «чья» деталь (добровольно).\n4) Подписать снизу 3 слова-ощущения от портрета.\n5) Фото на память (с согласия).", "psychology": "Идентичность через смыслы, а не через внешность; безопаснее для зажатых.", "reflection": "Какой предмет на портрете вас удивил?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "INCLUSION", "EMPATHY"], "isQuickRescue": false, "id": 73}, {"number": 74, "title": "Маяки поддержки", "durationMin": 12, "category": "CREATIVE", "propsText": "Бумага, маркеры, стикеры", "rules": "1) Каждый рисует 1–2 «маяка» — к кому/чему идти за помощью (человек, место, ритуал, вожатый, дневник).\n2) Подписать: «этот маяк силён в…».\n3) Собрать на общем «побережье».\n4) Можно добавить маяк «я сам/сама для других».\n5) 1 мин: подойти к чужому маяку и сказать «если что — я рядом с…».", "psychology": "Карта поддержки снижает одиночество и нормализует просьбу о помощи.", "reflection": "Какой маяк вы открыли для себя впервые?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["INCLUSION", "EMPATHY", "AFTER_CONFLICT"], "isQuickRescue": false, "id": 74}, {"number": 75, "title": "Книга «мы умеем»", "durationMin": 18, "category": "CREATIVE", "propsText": "Несколько листов, степлер/дырокол, маркеры", "rules": "1) Сделать «книгу» из 6–10 страниц: заголовок «Мы умеем».\n2) Каждый вписывает/рисует навык отряда или свой вклад.\n3) Страницы: «умеем шутить», «умеем договариваться», «умеем помогать»…\n4) Оставить 2 пустые страницы «научимся на этой смене».\n5) Книга живёт в комнате; можно дописывать всю смену.", "psychology": "Фиксирует прогресс и коллективную эффективность; якорь на трудные дни.", "reflection": "Какую пустую страницу вы хотите заполнить первой?", "energy": "CALM", "places": ["HALL", "SMALL_ROOM"], "propsLevel": "MINIMAL", "goals": ["BONDING", "INCLUSION", "CALM_DOWN"], "isQuickRescue": false, "id": 75}, {"number": 76, "title": "Горячая шоколадная река", "durationMin": 20, "category": "CHALLENGE", "propsText": "«Кочки» (листы А4)", "rules": "1) Река 4–6 м.\n2) Ограниченные кочки.\n3) Все на другой берег.\n4) Кочка без ноги «уплывает».", "psychology": "Планирование ресурсов и коммуникация под давлением.", "reflection": "Где вы теряли кочки — и как договорились?", "energy": "HIGH", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "BONDING", "FOCUS"], "isQuickRescue": false, "id": 76}, {"number": 77, "title": "Башня из ограничений", "durationMin": 20, "category": "CHALLENGE", "propsText": "Бумага, скотч, нитки", "rules": "1) Материалы ограничены.\n2) 15–20 мин на башню.\n3) Высота + устойчивость.\n4) Без чужих материалов.", "psychology": "Роли, итерации, работа с ограничениями.", "reflection": "Что вы изменили после первой неудачи?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "FOCUS", "BONDING"], "isQuickRescue": false, "id": 77}, {"number": 78, "title": "Побег с «ключами»", "durationMin": 18, "category": "CHALLENGE", "propsText": "Конверты-ключи, загадки", "rules": "1) 4–5 загадок-ключей.\n2) Команды делят задачи.\n3) Собрать кодовое слово.\n4) Без спойлеров другим, если гонка — мягкая.", "psychology": "Делегирование и сбор общей картины.", "reflection": "Как распределили задачи — по силе или по желанию?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "FOCUS", "BONDING"], "isQuickRescue": false, "id": 78}, {"number": 79, "title": "Необитаемый остров 2.0", "durationMin": 18, "category": "CHALLENGE", "propsText": "Список предметов", "rules": "1) 12 предметов — выбрать 6.\n2) Консенсус, не голосование большинством.\n3) 1 мин презентация стратегии.", "psychology": "Переговоры ценностей и приоритетов.", "reflection": "От какого предмета было больнее отказаться?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "LISTENING", "AFTER_CONFLICT"], "isQuickRescue": false, "id": 79}, {"number": 80, "title": "Тихий лабиринт", "durationMin": 15, "category": "CHALLENGE", "propsText": "Скотч-лабиринт на полу", "rules": "1) Пройти маршрут молча.\n2) 1 «радио» может шептать.\n3) Ошибки = рестарт с чекпоинта.", "psychology": "Невербальная координация + роли.", "reflection": "Какие жесты стали «языком» команды?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["FOCUS", "LISTENING", "BONDING"], "isQuickRescue": true, "id": 80}, {"number": 81, "title": "Спасательная операция", "durationMin": 18, "category": "CHALLENGE", "propsText": "«Раненый»-доброволец, метки", "rules": "1) «Пострадавший» не опирается на ногу.\n2) Перенести безопасным способом на «базу».\n3) Без подъёма на руки, если нет навыков — тактика «поддержка под локти».", "psychology": "Забота, безопасность, план перед действием.", "reflection": "Что проверили до первого шага?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["EMPATHY", "BONDING", "LEADERSHIP"], "isQuickRescue": false, "id": 81}, {"number": 82, "title": "Бюджет миссии", "durationMin": 16, "category": "CHALLENGE", "propsText": "Карточки цен, «деньги»", "rules": "1) Бюджет на снаряжение миссии.\n2) Купить набор.\n3) Объяснить trade-off.", "psychology": "Приоритизация и аргументация трат.", "reflection": "Какая покупка оказалась лишней?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "FOCUS", "LISTENING"], "isQuickRescue": false, "id": 82}, {"number": 83, "title": "Переправа на «льдинах»", "durationMin": 18, "category": "CHALLENGE", "propsText": "Листы-льдины", "rules": "1) Меньше льдин, чем людей.\n2) Все на другой берег.\n3) Льдина без веса уплывает.", "psychology": "Классика initiatives: координация и доверие.", "reflection": "Какая тактика сработала со второй попытки?", "energy": "HIGH", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "LEADERSHIP", "FOCUS"], "isQuickRescue": false, "id": 83}, {"number": 84, "title": "Код из фрагментов", "durationMin": 15, "category": "CHALLENGE", "propsText": "Разрезанное послание", "rules": "1) У каждого — кусок кода.\n2) Собрать фразу, не показывая лист целиком (или с ограничением).\n3) Таймер 8 мин.", "psychology": "Информация распределена — нужна коммуникация.", "reflection": "Как вы поняли, чей фрагмент «крайний»?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "FOCUS", "BONDING"], "isQuickRescue": true, "id": 84}, {"number": 85, "title": "Мост из бумаги", "durationMin": 20, "category": "CHALLENGE", "propsText": "Бумага, скотч, груз (карандаш)", "rules": "1) Построить мост между двумя столами.\n2) Удержать лёгкий груз.\n3) 15 мин.", "psychology": "Инженерия + распределение ролей.", "reflection": "Кто тестировал раньше, чем спорил?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "FOCUS", "BONDING"], "isQuickRescue": false, "id": 85}, {"number": 86, "title": "Загадка «только вместе»", "durationMin": 12, "category": "CHALLENGE", "propsText": "Карточки с кусками условия", "rules": "1) Условие задачи разрезано.\n2) Читать можно только свою карточку вслух.\n3) Решить вместе.", "psychology": "Никто не владеет полной картиной.", "reflection": "Что вы сделали, когда информации не хватало?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "FOCUS", "INCLUSION"], "isQuickRescue": true, "id": 86}, {"number": 87, "title": "Эвакуация ценностей", "durationMin": 15, "category": "CHALLENGE", "propsText": "Карточки ценностей, «пожар»-таймер", "rules": "1) 8 ценностей — спасти 3.\n2) 5 мин дискуссии.\n3) Обосновать.", "psychology": "Иерархия ценностей под дедлайном.", "reflection": "Что вы спасли первым — и почему?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["AFTER_CONFLICT", "LEADERSHIP", "EMPATHY"], "isQuickRescue": false, "id": 87}, {"number": 88, "title": "Робот и инженеры", "durationMin": 14, "category": "CHALLENGE", "propsText": "Повязка, «детали»", "rules": "1) Робот выполняет только точные команды.\n2) Собрать простую конструкцию.\n3) Смена робота.", "psychology": "Точность инструкций и терпение.", "reflection": "Какая команда была слишком размытой?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "FOCUS", "LEADERSHIP"], "isQuickRescue": true, "id": 88}, {"number": 89, "title": "Часовой пояс команды", "durationMin": 12, "category": "CHALLENGE", "propsText": "Не нужен", "rules": "1) Выстроить «день» группы: утро→вечер событиями.\n2) Согласовать 5 общих слотов.\n3) Найти конфликты расписаний.", "psychology": "Совмещение интересов и уважение границ.", "reflection": "Где пришлось уступить ради общего ритма?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "ZERO", "goals": ["BONDING", "AFTER_CONFLICT", "EMPATHY"], "isQuickRescue": false, "id": 89}, {"number": 90, "title": "Собрать послание", "durationMin": 14, "category": "CHALLENGE", "propsText": "Конверты по комнате", "rules": "1) Найти части послания.\n2) Порядок неизвестен.\n3) Собрать осмысленный текст.", "psychology": "Поиск + логика + кооперация.", "reflection": "Как решили, что порядок верный?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "FOCUS", "LEADERSHIP"], "isQuickRescue": false, "id": 90}, {"number": 91, "title": "Переправа без слов", "durationMin": 15, "category": "CHALLENGE", "propsText": "Кочки/конусы", "rules": "1) Как переправа, но молча.\n2) Только жесты.\n3) 1 рестарт при шуме.", "psychology": "Невербальный план и самоконтроль.", "reflection": "Какой жест стал «стоп» для всех?", "energy": "HIGH", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["FOCUS", "BONDING", "LISTENING"], "isQuickRescue": false, "id": 91}, {"number": 92, "title": "Архитектор и строители", "durationMin": 16, "category": "CHALLENGE", "propsText": "Образец-фигура, кубики/бумага", "rules": "1) Архитектор видит образец, не строит.\n2) Строители не видят образец.\n3) Только устные инструкции.", "psychology": "Разделение знания и исполнения.", "reflection": "Что архитектор упростил в языке?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LISTENING", "LEADERSHIP", "FOCUS"], "isQuickRescue": false, "id": 92}, {"number": 93, "title": "Кризис ресурсов", "durationMin": 18, "category": "CHALLENGE", "propsText": "Жетоны ресурсов, карточки событий", "rules": "1) Общий пул ресурсов.\n2) События забирают/дают.\n3) Выжить 5 раундов.", "psychology": "Справедливость распределения в стрессе.", "reflection": "Как решали, кому отдать последний ресурс?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["AFTER_CONFLICT", "LEADERSHIP", "EMPATHY"], "isQuickRescue": false, "id": 93}, {"number": 94, "title": "Ключ-панч", "durationMin": 12, "category": "CHALLENGE", "propsText": "Цифры/карточки 1–15 на полу", "rules": "1) Нажать числа по порядку.\n2) Только 1 человек в зоне.\n3) Лучшее время команды.", "psychology": "Порядок, память, роли «смотрителя».", "reflection": "Кто следил за следующим числом?", "energy": "HIGH", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["FOCUS", "LEADERSHIP", "ENERGY_RELEASE"], "isQuickRescue": true, "id": 94}, {"number": 95, "title": "Миссия «невидимый груз»", "durationMin": 14, "category": "CHALLENGE", "propsText": "Воображаемый хрупкий груз", "rules": "1) Нести «стекло» от А до Б.\n2) Правила хрупкости придумывает группа.\n3) Нарушение — рестарт.", "psychology": "Общие правила и самодисциплина.", "reflection": "Какое правило груза было самым умным?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "FOCUS", "CALM_DOWN"], "isQuickRescue": true, "id": 95}, {"number": 96, "title": "Совет героев", "durationMin": 16, "category": "CHALLENGE", "propsText": "Карточки ролей", "rules": "1) Роли: стратег, скептик, моралист, тайм-кипер.\n2) Решить кейс.\n3) Снять роли — что оставить?", "psychology": "Многоперспективное решение.", "reflection": "Чья роль неожиданно помогла?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["LEADERSHIP", "EMPATHY", "LISTENING"], "isQuickRescue": false, "id": 96}, {"number": 97, "title": "Перезапуск правил", "durationMin": 12, "category": "CHALLENGE", "propsText": "Не нужен", "rules": "1) Играть простую игру 2 мин.\n2) Группа меняет 1 правило.\n3) 3 итерации улучшений.", "psychology": "Метакогниция: правила можно улучшать вместе.", "reflection": "Какое изменение сделало игру честнее?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "ZERO", "goals": ["LEADERSHIP", "BONDING", "FOCUS"], "isQuickRescue": true, "id": 97}, {"number": 98, "title": "Цепочка решений", "durationMin": 14, "category": "CHALLENGE", "propsText": "Карточки «если→то»", "rules": "1) Стартовая ситуация.\n2) Каждый добавляет следствие.\n3) Найти точку, где можно было свернуть лучше.", "psychology": "Причинно-следственное мышление в группе.", "reflection": "Где цепочка стала необратимой?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["FOCUS", "LISTENING", "AFTER_CONFLICT"], "isQuickRescue": false, "id": 98}, {"number": 99, "title": "Финальный квест отряда", "durationMin": 30, "category": "CHALLENGE", "propsText": "5 станций (бумага/метки)", "rules": "1) 5 станций: тело, речь, творчество, логика, доверие.\n2) На каждой — мини-успех.\n3) Собрать «флаг» отряда.", "psychology": "Интеграция навыков смены в одном сюжете.", "reflection": "Какая станция показала рост группы с Дня 1?", "energy": "HIGH", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["BONDING", "LEADERSHIP", "FOCUS"], "isQuickRescue": false, "id": 99}, {"number": 100, "title": "Протокол успеха", "durationMin": 15, "category": "CHALLENGE", "propsText": "Большой лист", "rules": "1) Зафиксировать: что сработало в команде.\n2) 5 пунктов протокола.\n3) «Как повторим завтра».", "psychology": "Закрепление опыта и ритуал завершения.", "reflection": "Какой пункт протокола вы реально примените завтра?", "energy": "MEDIUM", "places": ["HALL", "OUTDOOR"], "propsLevel": "MINIMAL", "goals": ["CALM_DOWN", "BONDING", "EMPATHY"], "isQuickRescue": false, "id": 100}];
+    // service worker: use multi-file deploy for full offline; single-file still caches via Safari Add to Home
+    // iOS install tip
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const standalone = window.navigator.standalone === true;
+    if (isIos && !standalone) {
+      document.getElementById('installBanner').classList.remove('hidden');
+    }
+    bind();
+    render();
+  }
+
+  function bind() {
+    document.getElementById('search').addEventListener('input', (e) => {
+      state.query = e.target.value.trim().toLowerCase();
+      renderHome();
+    });
+    document.querySelectorAll('.nav button').forEach((b) => {
+      b.addEventListener('click', () => {
+        state.tab = b.dataset.tab;
+        state.detail = null;
+        document.querySelectorAll('.nav button').forEach((x) => x.classList.toggle('on', x === b));
+        showTab(state.tab);
+        render();
+      });
+    });
+    document.getElementById('detailBack').onclick = () => {
+      state.detail = null;
+      showTab(state.tab === 'detail' ? 'home' : state.tab);
+      render();
+    };
+    document.getElementById('planDays').oninput = (e) => {
+      document.getElementById('daysVal').textContent = e.target.value;
+    };
+    document.getElementById('planPerDay').oninput = (e) => {
+      document.getElementById('perDayVal').textContent = e.target.value;
+    };
+    document.getElementById('genPlan').onclick = generatePlan;
+    document.getElementById('cExit').onclick = closeCounselor;
+    document.getElementById('cNext').onclick = () => counselorNav(1);
+    document.getElementById('cPrev').onclick = () => counselorNav(-1);
+    document.getElementById('cTimerBtn').onclick = toggleTimer;
+  }
+
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach((s) => s.classList.remove('on'));
+    const map = { home: 'screen-home', plan: 'screen-plan', fav: 'screen-fav', hist: 'screen-hist', detail: 'screen-detail' };
+    const id = map[tab] || 'screen-home';
+    document.getElementById(id).classList.add('on');
+  }
+
+  function filtered() {
+    return ALL.filter((a) => {
+      if (state.cat && a.category !== state.cat) return false;
+      if (state.preset) {
+        const p = PRESETS.find((x) => x.id === state.preset);
+        if (p && !p.filter(a)) return false;
+      }
+      if (state.query) {
+        const blob = (a.title + ' ' + a.rules + ' ' + (a.goals || []).join(' ')).toLowerCase();
+        if (!blob.includes(state.query) && String(a.number) !== state.query) return false;
+      }
+      return true;
+    });
+  }
+
+  function render() {
+    if (state.detail) {
+      showTab('detail');
+      renderDetail();
+      return;
+    }
+    showTab(state.tab);
+    if (state.tab === 'home') renderHome();
+    if (state.tab === 'fav') renderFav();
+    if (state.tab === 'hist') renderHist();
+    if (state.tab === 'plan') renderPlanForm();
+  }
+
+  function renderHome() {
+    const presets = document.getElementById('presetChips');
+    presets.innerHTML = PRESETS.map((p) =>
+      `<button class="chip orange ${state.preset === p.id ? 'on' : ''}" data-p="${p.id}">${p.title}</button>`
+    ).join('');
+    presets.querySelectorAll('button').forEach((b) => {
+      b.onclick = () => {
+        state.preset = state.preset === b.dataset.p ? null : b.dataset.p;
+        renderHome();
+      };
+    });
+
+    const cats = document.getElementById('catChips');
+    const catKeys = ['PHYSICAL', 'VERBAL', 'CREATIVE', 'CHALLENGE'];
+    cats.innerHTML = `<button class="chip ${!state.cat ? 'on' : ''}" data-c="">Все</button>` +
+      catKeys.map((c) =>
+        `<button class="chip ${state.cat === c ? 'on' : ''}" data-c="${c}">${CAT_LABEL[c]}</button>`
+      ).join('');
+    cats.querySelectorAll('button').forEach((b) => {
+      b.onclick = () => {
+        state.cat = b.dataset.c || null;
+        renderHome();
+      };
+    });
+
+    const list = filtered();
+    document.getElementById('homeList').innerHTML =
+      `<div class="tip">Найдено: ${list.length}. Потряси телефон (на Android) или выбери пресет.</div>` +
+      list.map(cardHtml).join('');
+    bindCards();
+  }
+
+  function cardHtml(a) {
+    const fav = state.fav.has(a.number) ? '★' : '☆';
+    const goals = (a.goals || []).slice(0, 2).map((g) => GOAL_RU[g] || g).join(' · ');
+    return `<article class="card" data-n="${a.number}">
+      <button class="fav" data-fav="${a.number}">${fav}</button>
+      <div class="badge">${CAT_LABEL[a.category] || a.category}</div>
+      <h3>${a.number}. ${esc(a.title)}</h3>
+      <div class="meta">≈ ${a.durationMin} мин · ${a.energy} · ${a.propsLevel}</div>
+      ${goals ? `<div class="goals">Цель: ${esc(goals)}</div>` : ''}
+    </article>`;
+  }
+
+  function bindCards() {
+    document.querySelectorAll('.card[data-n]').forEach((el) => {
+      el.onclick = (e) => {
+        if (e.target.closest('[data-fav]')) return;
+        openDetail(+el.dataset.n);
+      };
+    });
+    document.querySelectorAll('[data-fav]').forEach((b) => {
+      b.onclick = (e) => {
+        e.stopPropagation();
+        const n = +b.dataset.fav;
+        if (state.fav.has(n)) state.fav.delete(n); else state.fav.add(n);
+        saveSet('fav', state.fav);
+        render();
+      };
+    });
+  }
+
+  function openDetail(n) {
+    state.detail = ALL.find((a) => a.number === n);
+    render();
+  }
+
+  function renderDetail() {
+    const a = state.detail;
+    if (!a) return;
+    const goals = (a.goals || []).map((g) => GOAL_RU[g] || g).join(' · ');
+    const steps = leaderSteps(a);
+    document.getElementById('detailBody').innerHTML = `
+      <div class="badge">${CAT_LABEL[a.category]}</div>
+      <h2>${a.number}. ${esc(a.title)}</h2>
+      <p class="meta">≈ ${a.durationMin} мин · ${a.energy} · ${esc(a.props.join(', '))}</p>
+      ${goals ? `<p style="color:var(--teal)"><b>Цели:</b> ${esc(goals)}</p>` : ''}
+      <button class="big-btn" id="startCounselor">▶ Режим ведущего</button>
+      <div class="sec">Реквизит</div><pre>${esc(a.propsText)}</pre>
+      <div class="sec">Правила</div><pre>${esc(a.rules)}</pre>
+      <div class="sec">Смысл</div><pre>${esc(a.psychology)}</pre>
+      <div class="sec">Рефлексия</div><pre>${esc(a.reflection)}</pre>
+      <div class="sec">Шагов в режиме ведущего: ${steps.length}</div>
+    `;
+    document.getElementById('startCounselor').onclick = () => openCounselor(a);
+  }
+
+  function renderFav() {
+    const list = ALL.filter((a) => state.fav.has(a.number));
+    document.getElementById('favList').innerHTML = list.length
+      ? list.map(cardHtml).join('')
+      : '<div class="empty">Пока пусто — жмите ☆ на карточках</div>';
+    bindCards();
+  }
+
+  function renderHist() {
+    const h = state.hist;
+    document.getElementById('histList').innerHTML = h.length
+      ? h.map((x) => `<div class="card" data-n="${x.number}">
+          <h3>${x.emoji || '✓'} ${x.number}. ${esc(x.title)}</h3>
+          <div class="meta">${x.rating} · ${new Date(x.at).toLocaleString('ru')}</div>
+        </div>`).join('')
+      : '<div class="empty">Завершите игру в режиме ведущего</div>';
+    bindCards();
+  }
+
+  function renderPlanForm() {
+    const wrap = document.getElementById('planCats');
+    if (!wrap.dataset.ready) {
+      wrap.innerHTML = Object.keys(CAT_LABEL).map((c) =>
+        `<button type="button" class="chip on" data-pc="${c}">${CAT_LABEL[c]}</button>`
+      ).join('');
+      wrap.querySelectorAll('button').forEach((b) => {
+        b.onclick = () => b.classList.toggle('on');
+      });
+      wrap.dataset.ready = '1';
+    }
+    // show saved last plan
+    if (state.plans[0] && !document.getElementById('planResult').dataset.live) {
+      document.getElementById('planResult').innerHTML = renderPlanHtml(state.plans[0]);
+      bindPlanSlots();
+    }
+  }
+
+  /* ─── Multi-day generator (place-aware) ─── */
+  function venueMode(a) {
+    const outdoor = a.places.includes('OUTDOOR');
+    const indoor = a.places.includes('HALL') || a.places.includes('SMALL_ROOM');
+    const bus = a.places.includes('BUS');
+    if (bus && !outdoor && !indoor) return 'BUS';
+    if (outdoor && !indoor) return 'OUTDOOR';
+    if (indoor && !outdoor) return 'INDOOR';
+    if (a.category === 'CREATIVE') return 'INDOOR';
+    if (a.category === 'PHYSICAL' && a.energy === 'HIGH' && outdoor) return 'OUTDOOR';
+    if (a.category === 'PHYSICAL' && outdoor) return 'OUTDOOR';
+    if (indoor) return 'INDOOR';
+    if (outdoor) return 'OUTDOOR';
+    return 'INDOOR';
+  }
+  function fitsVenue(mode, a) {
+    if (mode === 'OUTDOOR') return a.places.includes('OUTDOOR');
+    if (mode === 'INDOOR') return a.places.includes('HALL') || a.places.includes('SMALL_ROOM');
+    if (mode === 'BUS') return a.places.includes('BUS');
+    return true;
+  }
+
+  function generatePlan() {
+    const days = +document.getElementById('planDays').value;
+    const perDay = +document.getElementById('planPerDay').value;
+    const title = document.getElementById('planTitle').value || `Смена · ${days} дн.`;
+    const cats = [...document.querySelectorAll('#planCats .chip.on')].map((b) => b.dataset.pc);
+    let pool = ALL.filter((a) => cats.includes(a.category));
+    if (pool.length < days * perDay) pool = ALL.slice();
+    pool = shuffle(pool);
+
+    const used = new Set();
+    const planDays = [];
+    for (let d = 1; d <= days; d++) {
+      const phase = d <= 2 ? 'Оргпериод / знакомство' : d / days >= 0.75 ? 'Финал / смысл' : 'Основная часть';
+      const roles = perDay === 2 ? ['Разогрев', 'Заземление']
+        : perDay === 3 ? ['Разогрев', 'Ядро', 'Заземление']
+        : ['Разогрев', 'Ядро', 'Ядро', 'Заземление'].slice(0, perDay);
+      let venue = null;
+      const slots = [];
+      let lastCat = null;
+      for (let i = 0; i < roles.length; i++) {
+        const role = roles[i];
+        let cands = pool.filter((a) => !used.has(a.number));
+        if (venue) {
+          const fit = cands.filter((a) => fitsVenue(venue, a));
+          if (fit.length) cands = fit;
+        }
+        // score
+        cands = cands.map((a) => {
+          let s = Math.random();
+          if (d <= 2 && (a.goals || []).includes('ICEBREAK')) s += 5;
+          if (phase.startsWith('Финал') && ((a.goals || []).includes('CALM_DOWN') || a.number === 100)) s += 5;
+          if (role === 'Разогрев' && a.durationMin <= 14) s += 3;
+          if (role === 'Заземление' && a.energy === 'CALM') s += 4;
+          if (role === 'Ядро' && (a.category === 'CHALLENGE' || a.category === 'CREATIVE')) s += 2;
+          if (lastCat && a.category === lastCat) s -= 8;
+          if (venue && fitsVenue(venue, a)) s += 10;
+          if (venue && !fitsVenue(venue, a)) s -= 30;
+          return { a, s };
+        }).sort((x, y) => y.s - x.s);
+        const pick = cands[0]?.a;
+        if (!pick) break;
+        used.add(pick.number);
+        if (!venue) venue = venueMode(pick);
+        lastCat = pick.category;
+        slots.push({
+          role,
+          number: pick.number,
+          title: pick.title,
+          category: pick.category,
+          durationMin: pick.durationMin,
+          reason: `День ${d} · ${role} · место: ${venueLabel(venue)}`
+        });
+      }
+      planDays.push({
+        day: d,
+        phase,
+        venue: venueLabel(venue),
+        tip: venueTip(phase, venue),
+        slots,
+        minutes: slots.reduce((s, x) => s + x.durationMin, 0)
+      });
+    }
+    const plan = { title, days, perDay, daysData: planDays, at: Date.now() };
+    state.plans = [plan, ...state.plans].slice(0, 10);
+    saveJson('plans', state.plans);
+    const box = document.getElementById('planResult');
+    box.dataset.live = '1';
+    box.innerHTML = renderPlanHtml(plan);
+    bindPlanSlots();
+  }
+
+  function venueLabel(v) {
+    return ({ OUTDOOR: 'улица', INDOOR: 'корпус/комната', BUS: 'автобус' })[v] || '—';
+  }
+  function venueTip(phase, venue) {
+    return `${phase}. Место дня: ${venueLabel(venue)} — активности согласованы, без «рисование → беготня на улице».`;
+  }
+
+  function renderPlanHtml(plan) {
+    return `<div class="tip"><b>${esc(plan.title)}</b> · ${plan.days} дн. · ${plan.perDay} игр/день</div>` +
+      plan.daysData.map((d) => `
+        <div class="day-block">
+          <h3>День ${d.day} · ${esc(d.phase)}</h3>
+          <div class="meta">${esc(d.tip)} · ≈ ${d.minutes} мин</div>
+          ${d.slots.map((s) => `
+            <div class="slot" data-n="${s.number}">
+              <div class="role">${esc(s.role)}</div>
+              <b>${s.number}. ${esc(s.title)}</b>
+              <div class="meta">${s.durationMin} мин · ${CAT_LABEL[s.category] || ''} · ${esc(s.reason)}</div>
+            </div>`).join('')}
+        </div>`).join('');
+  }
+  function bindPlanSlots() {
+    document.querySelectorAll('.slot[data-n]').forEach((el) => {
+      el.onclick = () => openDetail(+el.dataset.n);
+    });
+  }
+
+  /* ─── Counselor mode ─── */
+  let cState = null;
+  let timerId = null;
+  let timerSec = 0;
+  let timerRun = false;
+
+  function leaderSteps(a) {
+    const lines = String(a.rules || '').split('\n').map((x) => x.trim()).filter(Boolean);
+    const steps = [
+      `Скажи: «Сейчас попробуем «${a.title}». Можно сказать „пас“ — это ок.»`,
+      'Покажи / объясни правила (1–2 мин).'
+    ];
+    lines.forEach((l, i) => steps.push(`Шаг ${i + 1}: ${l.replace(/^\d+[).]\s*/, '')}`));
+    steps.push('Стоп-сигнал. Поблагодари группу без «кто лучше».');
+    steps.push('Рефлексия: Что происходило?');
+    steps.push(a.reflection || 'Что почувствовали?');
+    steps.push('Что возьмём в жизнь отряда завтра?');
+    steps.push('RATE');
+    return steps;
+  }
+
+  function openCounselor(a) {
+    cState = { a, steps: leaderSteps(a), i: 0 };
+    timerSec = 0; timerRun = false;
+    document.getElementById('counselor').classList.add('on');
+    document.getElementById('cTitle').textContent = a.title;
+    renderCounselor();
+  }
+  function closeCounselor() {
+    document.getElementById('counselor').classList.remove('on');
+    stopTimer();
+    cState = null;
+  }
+  function renderCounselor() {
+    if (!cState) return;
+    const { steps, i, a } = cState;
+    const step = steps[i];
+    document.getElementById('cPhase').textContent = `Шаг ${i + 1} / ${steps.length}`;
+    const body = document.getElementById('cBody');
+    if (step === 'RATE') {
+      body.className = 'step-text';
+      body.innerHTML = `<p>Как прошло?</p>
+        <button class="big-btn" data-r="GOOD">🔥 Зашло</button>
+        <button class="big-btn" data-r="OK" style="background:var(--orange)">😐 Средне</button>
+        <button class="big-btn" data-r="MISS" style="background:#555">👎 Мимо</button>`;
+      body.querySelectorAll('[data-r]').forEach((b) => {
+        b.onclick = () => {
+          const emoji = { GOOD: '🔥', OK: '😐', MISS: '👎' }[b.dataset.r];
+          state.hist.unshift({
+            number: a.number, title: a.title, rating: b.dataset.r, emoji, at: Date.now()
+          });
+          state.hist = state.hist.slice(0, 100);
+          saveJson('hist', state.hist);
+          closeCounselor();
+          render();
+        };
+      });
+    } else if (i >= steps.length - 4 && i < steps.length - 1) {
+      body.className = 'reflect';
+      body.textContent = step;
+    } else {
+      body.className = 'step-text';
+      body.textContent = step;
+    }
+    document.getElementById('cPrev').disabled = i === 0;
+  }
+  function counselorNav(d) {
+    if (!cState) return;
+    cState.i = Math.max(0, Math.min(cState.steps.length - 1, cState.i + d));
+    renderCounselor();
+  }
+  function toggleTimer() {
+    if (timerRun) stopTimer();
+    else {
+      timerRun = true;
+      document.getElementById('cTimerBtn').textContent = '⏸';
+      timerId = setInterval(() => {
+        timerSec++;
+        const mm = String(Math.floor(timerSec / 60)).padStart(2, '0');
+        const ss = String(timerSec % 60).padStart(2, '0');
+        document.getElementById('cTimer').textContent = `${mm}:${ss}`;
+      }, 1000);
+    }
+  }
+  function stopTimer() {
+    timerRun = false;
+    clearInterval(timerId);
+    const btn = document.getElementById('cTimerBtn');
+    if (btn) btn.textContent = '▶';
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  init().catch((e) => {
+    document.body.innerHTML = `<div class="empty">Ошибка загрузки: ${esc(e.message)}</div>`;
+  });
+})();
+
+</script>
+</body>
+</html>

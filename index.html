@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Активности" />
+  <meta name="theme-color" content="#1A1340" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css?v=15" />
+  <title>Активности</title>
+  <base href="./" />
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <div id="installBanner" class="install-banner hidden">
+      <strong>На экран «Домой»</strong>: Safari → Поделиться → «На экран Домой».
+    </div>
+
+    <!-- HOME -->
+    <section id="screen-home" class="screen on">
+      <header class="app-header">
+        <div class="row" style="justify-content:space-between;align-items:baseline">
+          <h1>Активности</h1>
+          <div class="sub" id="listCountHeader">игры · offline</div>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <input id="search" class="search" type="search" placeholder="Поиск…" enterkeyhint="search" />
+        </div>
+      </header>
+      <div class="filters-bar">
+        <div class="chip-scroll" id="presetChips"></div>
+        <div class="chip-scroll" id="catChips"></div>
+        <div class="list-count" id="listCount"></div>
+      </div>
+      <div class="list" id="homeList"></div>
+    </section>
+
+    <!-- DETAIL -->
+    <section id="screen-detail" class="screen">
+      <div class="detail">
+        <div class="detail-top">
+          <div class="row">
+            <button type="button" class="back" id="detailBack">← Назад</button>
+            <div class="detail-nav-btns">
+              <button type="button" id="detailPrev" aria-label="Предыдущая">‹</button>
+              <button type="button" id="detailNext" aria-label="Следующая">›</button>
+            </div>
+          </div>
+          <div class="swipe-hint">← свайп между играми →</div>
+        </div>
+        <div class="detail-scroll" id="detailScroll">
+          <div id="detailBody"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAN -->
+    <section id="screen-plan" class="screen">
+      <header class="app-header">
+        <h1>Подборка на смену</h1>
+        <div class="sub">Авто-сетка · одно место на день</div>
+      </header>
+      <div class="form">
+        <label>Название</label>
+        <input id="planTitle" class="search" value="Смена · сплочение" />
+        <label>Дней: <span class="val" id="daysVal">10</span></label>
+        <input id="planDays" type="range" min="3" max="21" value="10" />
+        <label>Игр в день: <span class="val" id="perDayVal">3</span></label>
+        <input id="planPerDay" type="range" min="2" max="5" value="3" />
+        <label>Типы (можно несколько)</label>
+        <div class="chip-scroll" id="planCats" style="padding-left:0"></div>
+        <button type="button" class="detail big-btn" id="genPlan" style="width:100%;margin-top:12px;background:var(--teal);color:#1a1340;border:none;border-radius:14px;padding:14px;font-weight:700">Сгенерировать</button>
+      </div>
+      <div id="planResult"></div>
+    </section>
+
+    <!-- FAV -->
+    <section id="screen-fav" class="screen">
+      <header class="app-header"><h1>Избранное</h1></header>
+      <div class="list" id="favList"></div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="screen-hist" class="screen">
+      <header class="app-header"><h1>История</h1></header>
+      <div class="list" id="histList"></div>
+    </section>
+
+    <!-- COUNSELOR OVERLAY -->
+    <div id="counselor" class="counselor">
+      <div class="row" style="justify-content:space-between">
+        <button type="button" class="btn-ghost" id="cExit" style="padding:10px 14px;border-radius:12px">✕</button>
+        <div class="timer" id="cTimer">00:00</div>
+        <button type="button" class="btn-teal" id="cTimerBtn" style="padding:10px 14px;border-radius:12px">▶</button>
+      </div>
+      <div id="cPhase" style="color:var(--teal);font-size:.85rem;margin-top:8px"></div>
+      <h2 id="cTitle" style="margin-top:8px"></h2>
+      <div id="cBody" class="step-text"></div>
+      <div class="btn-row">
+        <button type="button" class="btn-ghost" id="cPrev">Назад</button>
+        <button type="button" class="btn-teal" id="cNext">Далее</button>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button type="button" class="on" data-tab="home"><span class="ico">🏠</span>Каталог</button>
+      <button type="button" data-tab="plan"><span class="ico">📅</span>Смена</button>
+      <button type="button" data-tab="fav"><span class="ico">★</span>Избранное</button>
+      <button type="button" data-tab="hist"><span class="ico">🕑</span>История</button>
+    </nav>
+  </div>
+
+  <script src="app.js?v=15"></script>
+</body>
+</html>
